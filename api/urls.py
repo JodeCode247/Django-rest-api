@@ -13,4 +13,5 @@ urlpatterns = [
     path('get_fruit/<int:id>/',views.getFruitInfo),
     path('filterFruits/',views.filterFruits),
     re_path('test_token', views.test_token),
+    re_path('login', views.login_user),
 ]

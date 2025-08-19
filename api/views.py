@@ -2,8 +2,62 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.authtoken.models import Token
+from django.contrib.auth.models import User
 from .models import Book,FruitsInfo,FruitsVendors
 from .serializer import UserSerializer,BookSerializer,FruitsSerializer
+
+
+
+@api_view(['POST'])
+def signup(request):
+    serializer = UserSerializer(data=request.data)
+    if serializer.is_valid():
+        # if User.objects.filter(email=request.data['email']).exists():
+        #     return Response({"email": f"email {request.data['email']} arleady exist"})
+        serializer.save()
+        user = User.objects.get(username=request.data['username'])
+        user.set_password(request.data['password'])
+        user.save()
+        token = Token.objects.create(user=user)
+
+        # serializer = UserSerializer(instance=user)
+        
+        return Response({'token':token.key,'user':serializer.data})
+    
+        
+    return Response(serializer.errors,status=400)
+        
+@api_view(['POST'])
+def login_user(request):
+    username = request.data["username"]
+    password= request.data["password"]  
+    try:
+        user=User.objects.get(username=username)
+    except:
+        return Response({'detail':"input not found"},status=404)        
+    if not user.check_password(password):
+        return Response({'detail':"input not found"},status=404)
+    token,created = Token.objects.get_or_create(user=user)
+    serializer = UserSerializer(instance=user)
+
+    return Response({'token':token.key,'user':serializer.data})
+
+    
+from rest_framework.authentication import SessionAuthentication,TokenAuthentication
+from rest_framework.decorators import authentication_classes,permission_classes
+from rest_framework.permissions import IsAuthenticated
+
+
+
+@api_view(['GET'])
+@authentication_classes
+def test_token(request):
+    return Response({'detail':"input not found"},)
+
+
+
+
 
 @api_view(['GET'])
 def getBook(request,id):
@@ -85,24 +139,3 @@ def createBook(request):
     except:
         return Response({'error':'detail not found'})
     
-
-@api_view(['POST'])
-def signup(request):
-    try:
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data,status=200)
-        
-        return Response(serializer.error,status=400)
-        
-    except:
-        return Response({'error':'detail not found'})
-    
-
-def login_user(request):
-    return HttpResponse("<h1>Hello from Django! LOGIN </h1>")
-
-
-def test_token(request):
-    return HttpResponse("<h1>Hello from Django! TOKEN TEST </h1>")
